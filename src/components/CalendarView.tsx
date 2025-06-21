@@ -1,10 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { useTheme } from '../contexts/ThemeContext';
 import { CalendarEvent, MarkedDate } from '../types/Event';
-import { EventService } from '../services/EventService';
 
 interface CalendarViewProps {
   onDateSelect: (date: string) => void;
@@ -72,34 +70,25 @@ const CalendarView: React.FC<CalendarViewProps> = ({ onDateSelect, selectedDate,
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <div 
+      className="rounded-3xl mx-4 shadow-lg"
+      style={{ backgroundColor: theme.colors.background }}
+    >
       <Calendar
         onDayPress={(day) => onDateSelect(day.dateString)}
         markedDates={markedDates}
         markingType="multi-dot"
         theme={calendarTheme}
-        style={styles.calendar}
+        style={{
+          borderRadius: 20,
+          paddingBottom: 16,
+        }}
         enableSwipeMonths={true}
         hideExtraDays={true}
         firstDay={1}
       />
-    </View>
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    borderRadius: 20,
-    margin: 16,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  calendar: {
-    borderRadius: 20,
-    paddingBottom: 16,
-  },
-});
 
 export default CalendarView;

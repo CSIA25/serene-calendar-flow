@@ -1,5 +1,4 @@
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CalendarEvent } from '../types/Event';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -8,7 +7,7 @@ const EVENTS_KEY = 'calendar_events';
 export class EventService {
   static async getAllEvents(): Promise<CalendarEvent[]> {
     try {
-      const eventsJson = await AsyncStorage.getItem(EVENTS_KEY);
+      const eventsJson = localStorage.getItem(EVENTS_KEY);
       return eventsJson ? JSON.parse(eventsJson) : [];
     } catch (error) {
       console.error('Error loading events:', error);
@@ -33,7 +32,7 @@ export class EventService {
     };
 
     events.push(newEvent);
-    await AsyncStorage.setItem(EVENTS_KEY, JSON.stringify(events));
+    localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
     return newEvent;
   }
 
@@ -49,7 +48,7 @@ export class EventService {
       updatedAt: new Date().toISOString(),
     };
 
-    await AsyncStorage.setItem(EVENTS_KEY, JSON.stringify(events));
+    localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
     return events[eventIndex];
   }
 
@@ -59,7 +58,7 @@ export class EventService {
     
     if (filteredEvents.length === events.length) return false;
     
-    await AsyncStorage.setItem(EVENTS_KEY, JSON.stringify(filteredEvents));
+    localStorage.setItem(EVENTS_KEY, JSON.stringify(filteredEvents));
     return true;
   }
 

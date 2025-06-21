@@ -1,26 +1,23 @@
 
-import * as Notifications from 'expo-notifications';
 import { CalendarEvent } from '../types/Event';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
 
 export class NotificationService {
   static async requestPermissions(): Promise<boolean> {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+    if (!('Notification' in window)) {
+      console.log('This browser does not support notifications');
+      return false;
     }
 
-    return finalStatus === 'granted';
+    if (Notification.permission === 'granted') {
+      return true;
+    }
+
+    if (Notification.permission !== 'denied') {
+      const permission = await Notification.requestPermission();
+      return permission === 'granted';
+    }
+
+    return false;
   }
 
   static async scheduleEventReminder(event: CalendarEvent): Promise<string | null> {
@@ -28,21 +25,25 @@ export class NotificationService {
 
     const eventDateTime = new Date(`${event.date}${event.time ? ` ${event.time}` : ' 09:00'}`);
     const reminderTime = new Date(eventDateTime.getTime() - (event.reminderMinutes * 60 * 1000));
+    const now = new Date();
 
-    if (reminderTime <= new Date()) return null;
+    if (reminderTime <= now) return null;
 
     try {
-      const notificationId = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Event Reminder',
-          body: event.title,
-          data: { eventId: event.id },
-        },
-        trigger: {
-          date: reminderTime,
-        },
-      });
+      const timeoutId = setTimeout(() => {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Event Reminder', {
+            body: event.title,
+            icon: '/favicon.ico',
+            tag: event.id,
+          });
+        }
+      }, reminderTime.getTime() - now.getTime());
 
+      // Store the timeout ID for potential cancellation
+      const notificationId = `notification_${event.id}_${Date.now()}`;
+      localStorage.setItem(notificationId, timeoutId.toString());
+      
       return notificationId;
     } catch (error) {
       console.error('Error scheduling notification:', error);
@@ -52,7 +53,11 @@ export class NotificationService {
 
   static async cancelNotification(notificationId: string): Promise<void> {
     try {
-      await Notifications.cancelScheduledNotificationAsync(notificationId);
+      const timeoutId = localStorage.getItem(notificationId);
+      if (timeoutId) {
+        clearTimeout(parseInt(timeoutId));
+        localStorage.removeItem(notificationId);
+      }
     } catch (error) {
       console.error('Error canceling notification:', error);
     }

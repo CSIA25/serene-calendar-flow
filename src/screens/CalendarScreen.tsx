@@ -1,13 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  Text,
-  Alert,
-} from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { CalendarEvent } from '../types/Event';
 import { EventService } from '../services/EventService';
@@ -42,10 +34,7 @@ const CalendarScreen: React.FC = () => {
   const requestNotificationPermissions = async () => {
     const granted = await NotificationService.requestPermissions();
     if (!granted) {
-      Alert.alert(
-        'Notifications Disabled',
-        'Please enable notifications in settings to receive event reminders.'
-      );
+      alert('Please enable notifications in settings to receive event reminders.');
     }
   };
 
@@ -81,7 +70,7 @@ const CalendarScreen: React.FC = () => {
       await loadEvents();
       setEditingEvent(undefined);
     } catch (error) {
-      Alert.alert('Error', 'Failed to save event');
+      alert('Failed to save event');
     }
   };
 
@@ -92,7 +81,7 @@ const CalendarScreen: React.FC = () => {
       setEditingEvent(undefined);
       setShowEventModal(false);
     } catch (error) {
-      Alert.alert('Error', 'Failed to delete event');
+      alert('Failed to delete event');
     }
   };
 
@@ -113,30 +102,45 @@ const CalendarScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
-        <TouchableOpacity
-          style={[styles.viewToggle, { backgroundColor: theme.colors.surface }]}
-          onPress={() => setShowUpcoming(!showUpcoming)}
+    <div 
+      className="min-h-screen"
+      style={{ backgroundColor: theme.colors.background }}
+    >
+      {/* Header */}
+      <div 
+        className="flex justify-between items-center px-5 py-4"
+        style={{ backgroundColor: theme.colors.background }}
+      >
+        <button
+          onClick={() => setShowUpcoming(!showUpcoming)}
+          className="px-4 py-2 rounded-full"
+          style={{ backgroundColor: theme.colors.surface }}
         >
-          <Text style={[styles.viewToggleText, { color: theme.colors.text }]}>
+          <span 
+            className="text-sm font-semibold"
+            style={{ color: theme.colors.text }}
+          >
             {showUpcoming ? 'Calendar' : 'Upcoming'}
-          </Text>
-        </TouchableOpacity>
+          </span>
+        </button>
         
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-          Calendar
-        </Text>
-        
-        <TouchableOpacity
-          style={[styles.themeToggle, { backgroundColor: theme.colors.surface }]}
-          onPress={toggleTheme}
+        <h1 
+          className="text-2xl font-bold"
+          style={{ color: theme.colors.text }}
         >
-          <Text style={[styles.themeToggleText, { color: theme.colors.text }]}>
+          Calendar
+        </h1>
+        
+        <button
+          onClick={toggleTheme}
+          className="w-10 h-10 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: theme.colors.surface }}
+        >
+          <span className="text-lg">
             {theme.isDark ? '☀️' : '🌙'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+          </span>
+        </button>
+      </div>
 
       {showUpcoming ? (
         <EventsList
@@ -152,29 +156,33 @@ const CalendarScreen: React.FC = () => {
             events={events}
           />
           
-          <View style={styles.selectedDateSection}>
-            <View style={styles.selectedDateHeader}>
-              <Text style={[styles.selectedDateTitle, { color: theme.colors.text }]}>
+          <div className="flex-1 pt-2">
+            <div className="flex justify-between items-center px-5 pb-2">
+              <h2 
+                className="text-lg font-semibold"
+                style={{ color: theme.colors.text }}
+              >
                 {new Date(selectedDate).toLocaleDateString([], { 
                   weekday: 'long', 
                   month: 'long', 
                   day: 'numeric' 
                 })}
-              </Text>
-              <TouchableOpacity
-                style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
-                onPress={handleNewEvent}
+              </h2>
+              <button
+                onClick={handleNewEvent}
+                className="w-9 h-9 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: theme.colors.primary }}
               >
-                <Text style={styles.addButtonText}>+</Text>
-              </TouchableOpacity>
-            </View>
+                <span className="text-white text-xl font-semibold">+</span>
+              </button>
+            </div>
             
             <EventsList
               events={selectedDateEvents}
               onEventPress={handleEventPress}
               title=""
             />
-          </View>
+          </div>
         </>
       )}
 
@@ -189,71 +197,8 @@ const CalendarScreen: React.FC = () => {
         selectedDate={selectedDate}
         editingEvent={editingEvent}
       />
-    </SafeAreaView>
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  viewToggle: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  viewToggleText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  themeToggle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  themeToggleText: {
-    fontSize: 18,
-  },
-  selectedDateSection: {
-    flex: 1,
-    paddingTop: 8,
-  },
-  selectedDateHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 8,
-  },
-  selectedDateTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '600',
-  },
-});
 
 export default CalendarScreen;

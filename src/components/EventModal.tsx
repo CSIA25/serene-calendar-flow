@@ -1,17 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Switch,
-  Alert,
-} from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../contexts/ThemeContext';
 import { CalendarEvent } from '../types/Event';
 
@@ -36,8 +24,7 @@ const EventModal: React.FC<EventModalProps> = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [hasTime, setHasTime] = useState(false);
-  const [time, setTime] = useState(new Date());
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [time, setTime] = useState('09:00');
   const [hasReminder, setHasReminder] = useState(false);
   const [reminderMinutes, setReminderMinutes] = useState(15);
 
@@ -46,12 +33,7 @@ const EventModal: React.FC<EventModalProps> = ({
       setTitle(editingEvent.title);
       setDescription(editingEvent.description || '');
       setHasTime(!!editingEvent.time);
-      if (editingEvent.time) {
-        const [hours, minutes] = editingEvent.time.split(':');
-        const timeDate = new Date();
-        timeDate.setHours(parseInt(hours), parseInt(minutes));
-        setTime(timeDate);
-      }
+      setTime(editingEvent.time || '09:00');
       setHasReminder(editingEvent.hasReminder);
       setReminderMinutes(editingEvent.reminderMinutes || 15);
     } else {
@@ -63,26 +45,22 @@ const EventModal: React.FC<EventModalProps> = ({
     setTitle('');
     setDescription('');
     setHasTime(false);
-    setTime(new Date());
+    setTime('09:00');
     setHasReminder(false);
     setReminderMinutes(15);
   };
 
   const handleSave = () => {
     if (!title.trim()) {
-      Alert.alert('Error', 'Please enter a title for the event');
+      alert('Please enter a title for the event');
       return;
     }
-
-    const timeString = hasTime ? 
-      `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}` : 
-      undefined;
 
     const eventData = {
       title: title.trim(),
       description: description.trim(),
       date: selectedDate,
-      time: timeString,
+      time: hasTime ? time : undefined,
       hasReminder,
       reminderMinutes: hasReminder ? reminderMinutes : undefined,
     };
@@ -94,14 +72,9 @@ const EventModal: React.FC<EventModalProps> = ({
 
   const handleDelete = () => {
     if (editingEvent && onDelete) {
-      Alert.alert(
-        'Delete Event',
-        'Are you sure you want to delete this event?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: () => onDelete(editingEvent.id) },
-        ]
-      );
+      if (confirm('Are you sure you want to delete this event?')) {
+        onDelete(editingEvent.id);
+      }
     }
   };
 
@@ -113,225 +86,177 @@ const EventModal: React.FC<EventModalProps> = ({
     { label: '1 day', value: 1440 },
   ];
 
+  if (!visible) return null;
+
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={[styles.cancelButton, { color: theme.colors.textSecondary }]}>Cancel</Text>
-          </TouchableOpacity>
-          <Text style={[styles.title, { color: theme.colors.text }]}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div 
+        className="w-full max-w-md max-h-[90vh] rounded-2xl overflow-hidden"
+        style={{ backgroundColor: theme.colors.background }}
+      >
+        {/* Header */}
+        <div 
+          className="flex justify-between items-center px-5 py-4 border-b"
+          style={{ borderBottomColor: theme.colors.border }}
+        >
+          <button 
+            onClick={onClose}
+            className="text-base"
+            style={{ color: theme.colors.textSecondary }}
+          >
+            Cancel
+          </button>
+          <h2 
+            className="text-lg font-semibold"
+            style={{ color: theme.colors.text }}
+          >
             {editingEvent ? 'Edit Event' : 'New Event'}
-          </Text>
-          <TouchableOpacity onPress={handleSave}>
-            <Text style={[styles.saveButton, { color: theme.colors.primary }]}>Save</Text>
-          </TouchableOpacity>
-        </View>
+          </h2>
+          <button 
+            onClick={handleSave}
+            className="text-base font-semibold"
+            style={{ color: theme.colors.primary }}
+          >
+            Save
+          </button>
+        </div>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
-            <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Title</Text>
-            <TextInput
-              style={[styles.input, { color: theme.colors.text }]}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Event title"
-              placeholderTextColor={theme.colors.textSecondary}
-            />
-          </View>
-
-          <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
-            <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Description</Text>
-            <TextInput
-              style={[styles.textArea, { color: theme.colors.text }]}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Event description (optional)"
-              placeholderTextColor={theme.colors.textSecondary}
-              multiline
-              numberOfLines={3}
-            />
-          </View>
-
-          <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
-            <View style={styles.switchRow}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>Add Time</Text>
-              <Switch
-                value={hasTime}
-                onValueChange={setHasTime}
-                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-                thumbColor={theme.colors.background}
-              />
-            </View>
-            {hasTime && (
-              <TouchableOpacity
-                style={[styles.timeButton, { borderColor: theme.colors.border }]}
-                onPress={() => setShowTimePicker(true)}
-              >
-                <Text style={[styles.timeText, { color: theme.colors.text }]}>
-                  {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
-            <View style={styles.switchRow}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>Reminder</Text>
-              <Switch
-                value={hasReminder}
-                onValueChange={setHasReminder}
-                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-                thumbColor={theme.colors.background}
-              />
-            </View>
-            {hasReminder && (
-              <View style={styles.reminderOptions}>
-                {reminderOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.reminderOption,
-                      { backgroundColor: reminderMinutes === option.value ? theme.colors.primary : 'transparent' }
-                    ]}
-                    onPress={() => setReminderMinutes(option.value)}
-                  >
-                    <Text
-                      style={[
-                        styles.reminderText,
-                        { 
-                          color: reminderMinutes === option.value ? '#FFFFFF' : theme.colors.text 
-                        }
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-
-          {editingEvent && onDelete && (
-            <TouchableOpacity
-              style={[styles.deleteButton, { backgroundColor: theme.colors.error }]}
-              onPress={handleDelete}
+        {/* Content */}
+        <div className="overflow-y-auto max-h-[calc(90vh-80px)] p-5 space-y-4">
+          {/* Title */}
+          <div 
+            className="rounded-xl p-4"
+            style={{ backgroundColor: theme.colors.surface }}
+          >
+            <label 
+              className="block text-sm font-medium mb-2"
+              style={{ color: theme.colors.textSecondary }}
             >
-              <Text style={styles.deleteButtonText}>Delete Event</Text>
-            </TouchableOpacity>
-          )}
-        </ScrollView>
+              Title
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Event title"
+              className="w-full text-base py-2 bg-transparent outline-none"
+              style={{ color: theme.colors.text }}
+            />
+          </div>
 
-        {showTimePicker && (
-          <DateTimePicker
-            value={time}
-            mode="time"
-            is24Hour={true}
-            display="default"
-            onChange={(event, selectedTime) => {
-              setShowTimePicker(false);
-              if (selectedTime) {
-                setTime(selectedTime);
-              }
-            }}
-          />
-        )}
-      </View>
-    </Modal>
+          {/* Description */}
+          <div 
+            className="rounded-xl p-4"
+            style={{ backgroundColor: theme.colors.surface }}
+          >
+            <label 
+              className="block text-sm font-medium mb-2"
+              style={{ color: theme.colors.textSecondary }}
+            >
+              Description
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Event description (optional)"
+              className="w-full text-base py-2 bg-transparent outline-none resize-none h-20"
+              style={{ color: theme.colors.text }}
+            />
+          </div>
+
+          {/* Time */}
+          <div 
+            className="rounded-xl p-4"
+            style={{ backgroundColor: theme.colors.surface }}
+          >
+            <div className="flex justify-between items-center mb-3">
+              <label 
+                className="text-base font-medium"
+                style={{ color: theme.colors.text }}
+              >
+                Add Time
+              </label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hasTime}
+                  onChange={(e) => setHasTime(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+            {hasTime && (
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="w-full p-3 border rounded-lg text-base"
+                style={{ 
+                  borderColor: theme.colors.border,
+                  color: theme.colors.text,
+                  backgroundColor: 'transparent'
+                }}
+              />
+            )}
+          </div>
+
+          {/* Reminder */}
+          <div 
+            className="rounded-xl p-4"
+            style={{ backgroundColor: theme.colors.surface }}
+          >
+            <div className="flex justify-between items-center mb-3">
+              <label 
+                className="text-base font-medium"
+                style={{ color: theme.colors.text }}
+              >
+                Reminder
+              </label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hasReminder}
+                  onChange={(e) => setHasReminder(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+            {hasReminder && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {reminderOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setReminderMinutes(option.value)}
+                    className="px-4 py-2 rounded-full text-sm font-medium transition-colors"
+                    style={{
+                      backgroundColor: reminderMinutes === option.value ? theme.colors.primary : 'transparent',
+                      color: reminderMinutes === option.value ? '#FFFFFF' : theme.colors.text,
+                      border: `1px solid ${reminderMinutes === option.value ? 'transparent' : theme.colors.border}`
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Delete Button */}
+          {editingEvent && onDelete && (
+            <button
+              onClick={handleDelete}
+              className="w-full rounded-xl p-4 text-white font-semibold mt-5"
+              style={{ backgroundColor: theme.colors.error }}
+            >
+              Delete Event
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  cancelButton: {
-    fontSize: 16,
-  },
-  saveButton: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  section: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  input: {
-    fontSize: 16,
-    paddingVertical: 8,
-  },
-  textArea: {
-    fontSize: 16,
-    paddingVertical: 8,
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  timeButton: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  timeText: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  reminderOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 12,
-    gap: 8,
-  },
-  reminderOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  reminderText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  deleteButton: {
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  deleteButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
 
 export default EventModal;
